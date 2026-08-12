@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MaoLao API — 统一的大模型接口网关</title>
+<meta name="description" content="MaoLao API · 面向开发者的统一大模型接口网关。一套域名、一把密钥，连通 OpenAI、Anthropic、Google、xAI 等 30+ 供应商。">
+<link rel="icon" href="https://maolaoapi.com/favicon.ico">
+<meta name="theme-color" content="#ffffff">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f7f8fa;
+  --bg-sunken: #f1f3f5;
+  --ink: #1c1f23;
+  --ink-deep: #0b0d0f;
+  --text-1: #1c1f23;
+  --text-2: #4e5969;
+  --text-3: #86909c;
+  --text-4: #b3b9c4;
+  --line: #e5e6eb;
+  --line-soft: #eef0f3;
+  --accent: #4080ff;            /* Semi design 同款蓝，自然不刺眼 */
+  --accent-deep: #2664f6;
+  --accent-tint: rgba(64,128,255,0.10);
+  --success: #16a34a;
+  --glow-a: rgba(99,102,241,0.28);  /* 左上一抹极淡靛色（参考 packy 实际可见强度） */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text-2);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.005em;
+}
+body { overflow-x: hidden; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-deep); }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* ─────────── HERO ─────────── */
+.hero {
+  position: relative;
+  padding: 120px 0 96px;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+/* 一处极淡的角光晕 — 参考 packy 实际渲染 */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -180px;
+  left: -180px;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, var(--glow-a) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero__grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: 64px;
+  align-items: start;
+}
+@media (max-width: 1023px) {
+  .hero { padding: 80px 0 64px; }
+  .hero__grid { grid-template-columns: 1fr; gap: 40px; }
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  border: 1px solid rgba(64,128,255,0.25);
+  color: var(--accent-deep);
+  margin-bottom: 28px;
+}
+
+.h1 {
+  font-size: clamp(40px, 5.2vw, 62px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0 0 24px;
+  max-width: 16ch;
+}
+/* Packy 风金属白光扫过 shimmer — 基色深黑，一道白光 */
+.shine {
+  background-image: linear-gradient(
+    90deg,
+    var(--ink) 0%,
+    var(--ink) 40%,
+    rgba(255,255,255,0.92) 50%,
+    var(--ink) 60%,
+    var(--ink) 100%
+  );
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer 4.5s linear infinite;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shine { animation: none; }
+}
+
+.lede {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text-2);
+  max-width: 540px;
+  margin: 0 0 32px;
+}
+
+/* base_url 卡 */
+.endpoint {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px 6px 6px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 540px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 2px rgba(28,31,35,0.04);
+}
+.endpoint__url {
+  font-family: var(--font-mono);
+  font-size: 14.5px;
+  color: var(--ink);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: all;
+}
+.endpoint__copy {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 9px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 150ms ease, transform 100ms ease;
+  white-space: nowrap;
+}
+.endpoint__copy:hover { background: var(--ink-deep); }
+.endpoint__copy:active { transform: scale(0.97); }
+.endpoint__copy.is-copied { background: var(--success); }
+
+/* CTA */
+.cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  font-family: var(--font-sans);
+}
+.btn--primary { background: var(--ink); color: #fff; }
+.btn--primary:hover { background: var(--accent-deep); }
+.btn--ghost {
+  background: transparent;
+  color: var(--text-1);
+  border-color: var(--line);
+}
+.btn--ghost:hover { background: var(--bg-soft); color: var(--ink); }
+.btn svg { display: block; }
+
+/* right panel */
+.panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px;
+}
+.panel__title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin: 0 0 20px;
+}
+.panel__rows { display: flex; flex-direction: column; }
+.panel__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.panel__row:last-child { border-bottom: 0; padding-bottom: 0; }
+.panel__row:first-child { padding-top: 0; }
+.panel__row-num {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.panel__row-label { font-size: 13px; color: var(--text-2); }
+
+/* ─────────── SECTION COMMON ─────────── */
+.section { padding: 112px 0; }
+@media (max-width: 1023px) { .section { padding: 72px 0; } }
+.section--alt { background: var(--bg-soft); }
+
+.section__head { max-width: 640px; margin: 0 0 56px; }
+.section__eyebrow {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 16px;
+}
+.h2 {
+  font-size: clamp(26px, 2.8vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0 0 16px;
+}
+.section__sub { font-size: 16px; color: var(--text-2); margin: 0; }
+
+/* values */
+.values {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+@media (max-width: 760px) { .values { grid-template-columns: 1fr; } }
+.value { background: var(--bg); padding: 32px; }
+.value__icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: var(--bg-sunken);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-1);
+  margin-bottom: 20px;
+}
+.value__title {
+  font-size: 18px; font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink); margin: 0 0 8px;
+}
+.value__desc { font-size: 14.5px; color: var(--text-2); line-height: 1.6; margin: 0; }
+
+/* steps */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+.step__num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-3);
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.step__title {
+  font-size: 18px; font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink); margin: 0 0 8px;
+}
+.step__desc { font-size: 14.5px; color: var(--text-2); margin: 0; }
+
+/* providers */
+.providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.provider {
+  background: var(--bg);
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-1);
+  transition: background 150ms ease, color 150ms ease;
+}
+.provider:hover { background: var(--bg-soft); color: var(--ink); }
+
+/* final */
+.final { padding: 112px 0; border-top: 1px solid var(--line); position: relative; overflow: hidden; }
+.final::before {
+  content: "";
+  position: absolute;
+  bottom: -160px; right: -120px;
+  width: 460px; height: 460px;
+  background: radial-gradient(circle, var(--glow-a) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+.final__inner { position: relative; max-width: 640px; }
+.final .cta-row { margin-top: 32px; }
+
+/* footer */
+footer { border-top: 1px solid var(--line); background: var(--bg); padding: 28px 0; }
+.foot {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 24px; flex-wrap: wrap;
+}
+.foot__links { display: flex; gap: 24px; flex-wrap: wrap; }
+.foot__links a { font-size: 13px; color: var(--text-2); }
+.foot__links a:hover { color: var(--ink); }
+.foot__copy { font-size: 12.5px; color: var(--text-3); }
+.foot__status {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--text-2);
+}
+.foot__dot {
+  width: 6px; height: 6px;
+  background: var(--success);
+  border-radius: 50%;
+}
+</style>
+</head>
+<body>
+
+<main>
+
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero__grid">
+
+        <div data-od-id="hero-text">
+          <span class="eyebrow" data-od-id="hero-eyebrow">面向开发者的大模型接口网关</span>
+
+          <h1 class="h1" data-od-id="hero-h1">
+            统一的大模型接口网关<br/>
+            <span class="shine">连接全球 AI 能力</span>
+          </h1>
+
+          <p class="lede" data-od-id="hero-lede">
+            一套域名、一把密钥、一份计费。MaoLao API 将 OpenAI、Anthropic、Google、xAI
+            等 30+ 模型供应商收敛在同一个端点之后，原生兼容现有 SDK，无需改动一行代码。
+          </p>
+
+          <div class="endpoint" data-od-id="hero-endpoint">
+            <span class="endpoint__url" id="mla-baseurl">https://api.maolaoapi.cc</span>
+            <button class="endpoint__copy" id="mla-copy" type="button" aria-label="复制 API 地址">复制</button>
+          </div>
+
+          <div class="cta-row" data-od-id="hero-cta">
+            <a class="btn btn--primary" href="https://maolaoapi.com/console/token" target="_top">
+              获取密钥
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a class="btn btn--ghost" href="https://maolaoapi.com/" target="_top">查看文档</a>
+          </div>
+        </div>
+
+        <div data-od-id="hero-panel">
+          <div class="panel">
+            <p class="panel__title">服务指标</p>
+            <div class="panel__rows">
+              <div class="panel__row"><span class="panel__row-num">30+</span><span class="panel__row-label">接入供应商</span></div>
+              <div class="panel__row"><span class="panel__row-num">200+</span><span class="panel__row-label">可用模型</span></div>
+              <div class="panel__row"><span class="panel__row-num">13</span><span class="panel__row-label">兼容端点</span></div>
+              <div class="panel__row"><span class="panel__row-num">99.9%</span><span class="panel__row-label">SLA 可用性</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt" data-od-id="values">
+    <div class="wrap">
+      <div class="section__head">
+        <span class="section__eyebrow">为什么选择 MaoLao API</span>
+        <h2 class="h2">让团队稳定使用大模型，<br/>更快落地 AI 创新。</h2>
+        <p class="section__sub">从访问控制、成本可视化到全局调度，MaoLao API 为团队提供端到端的 AI 基础设施能力。</p>
+      </div>
+
+      <div class="values">
+        <div class="value">
+          <div class="value__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg></div>
+          <h3 class="value__title">统一入口</h3>
+          <p class="value__desc">以单一域名和密钥连接全部模型供应商，多通道智能容灾切换，确保业务永不中断。</p>
+        </div>
+        <div class="value">
+          <div class="value__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg></div>
+          <h3 class="value__title">全栈可观测</h3>
+          <p class="value__desc">实时监控调用量、错误率与费用，一键配置限流、告警与安全策略，问题秒级感知。</p>
+        </div>
+        <div class="value">
+          <div class="value__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18M3 16h18M8 3v18M16 3v18"/></svg></div>
+          <h3 class="value__title">成本透明</h3>
+          <p class="value__desc">按 token 精算，余额、用量、明细在控制台一目了然。多渠道配额智能路由，无套路。</p>
+        </div>
+        <div class="value">
+          <div class="value__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div>
+          <h3 class="value__title">开发者友好</h3>
+          <p class="value__desc">兼容 OpenAI / Anthropic / Gemini 三大协议，原生 SDK 直连，配套 Playground 与示例。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" data-od-id="workflow">
+    <div class="wrap">
+      <div class="section__head">
+        <span class="section__eyebrow">工作流</span>
+        <h2 class="h2">三步构建你的 AI 控制平面。</h2>
+        <p class="section__sub">从接入到上线，所有动作在控制台一站完成。</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step__num">01 / ACCESS</div>
+          <h3 class="step__title">接入配置</h3>
+          <p class="step__desc">在控制台创建密钥、绑定渠道与限额，导入需要的模型列表。</p>
+        </div>
+        <div class="step">
+          <div class="step__num">02 / ROUTING</div>
+          <h3 class="step__title">智能调度</h3>
+          <p class="step__desc">基于健康度、延迟与价格自动选择最优通道，内置多重故障切换。</p>
+        </div>
+        <div class="step">
+          <div class="step__num">03 / OBSERVE</div>
+          <h3 class="step__title">持续洞察</h3>
+          <p class="step__desc">通过仪表盘追踪调用趋势、消耗与失败率，实时告警保障 SLO。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt" data-od-id="providers">
+    <div class="wrap">
+      <div class="section__head">
+        <span class="section__eyebrow">生态伙伴</span>
+        <h2 class="h2">与主流模型供应商深度对接。</h2>
+        <p class="section__sub">保持统一协议，快速切换与扩展模型能力，随时接入最新生态。</p>
+      </div>
+
+      <div class="providers">
+        <div class="provider">OpenAI</div>
+        <div class="provider">Anthropic</div>
+        <div class="provider">Google</div>
+        <div class="provider">xAI / Grok</div>
+        <div class="provider">DeepSeek</div>
+        <div class="provider">Qwen</div>
+        <div class="provider">Moonshot</div>
+        <div class="provider">Zhipu</div>
+        <div class="provider">Volcengine</div>
+        <div class="provider">Hunyuan</div>
+        <div class="provider">Wenxin</div>
+        <div class="provider">Minimax</div>
+        <div class="provider">Midjourney</div>
+        <div class="provider">Suno</div>
+        <div class="provider">Azure</div>
+        <div class="provider">Cohere</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final" data-od-id="final-cta">
+    <div class="wrap">
+      <div class="final__inner">
+        <span class="section__eyebrow">立即开始</span>
+        <h2 class="h2">将大模型能力<br/>真正落地到业务流程。</h2>
+        <p class="section__sub">接入 MaoLao API，统一控制访问策略与调用成本，为产品带来稳定、可扩展的智能体验。</p>
+        <div class="cta-row">
+          <a class="btn btn--primary" href="https://maolaoapi.com/console/token" target="_top">
+            获取密钥
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+          <a class="btn btn--ghost" href="https://maolaoapi.com/" target="_top">查看文档</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div class="foot__status"><span class="foot__dot"></span>All systems operational</div>
+    <div class="foot__links">
+      <a href="https://maolaoapi.com/console" target="_top">控制台</a>
+      <a href="https://maolaoapi.com/pricing" target="_top">价格</a>
+      <a href="https://maolaoapi.com/" target="_top">文档</a>
+      <a href="https://t.me/MaoLaoAPI" target="_blank" rel="noopener">Telegram</a>
+      <a href="https://maolaoapi.com/about" target="_top">关于</a>
+    </div>
+    <div class="foot__copy">© 2026 MaoLao API</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var btn = document.getElementById('mla-copy');
+  var src = document.getElementById('mla-baseurl');
+  if (!btn || !src) return;
+
+  function flash(label){
+    btn.textContent = label;
+    btn.classList.add('is-copied');
+    setTimeout(function(){
+      btn.textContent = '复制';
+      btn.classList.remove('is-copied');
+    }, 1800);
+  }
+
+  function legacyCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly','');
+    ta.style.position = 'fixed';
+    ta.style.top = '0'; ta.style.left = '0';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  btn.addEventListener('click', function(){
+    var text = src.textContent.trim();
+    // 立即视觉反馈，不等任何 promise
+    flash('已复制');
+
+    // 真正的复制 — 先尝试 modern API, 失败立刻 fallback
+    var done = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function(){
+        done = true;
+      }).catch(function(){
+        if (!done) legacyCopy(text);
+      });
+    } else {
+      legacyCopy(text);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
+

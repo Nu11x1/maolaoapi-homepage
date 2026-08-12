@@ -11,6 +11,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --bg-soft: #f7f8fa;
   --bg-sunken: #f1f3f5;
@@ -27,8 +28,38 @@
   --accent-tint: rgba(64,128,255,0.10);
   --success: #16a34a;
   --glow-a: rgba(99,102,241,0.28);  /* 左上一抹极淡靛色（参考 packy 实际可见强度） */
+  --shine-glint: rgba(255,255,255,0.92);
+  --primary-bg: var(--ink);
+  --primary-text: #ffffff;
+  --primary-hover-bg: var(--accent-deep);
+  --primary-hover-text: #ffffff;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1217;
+  --bg-soft: #171b22;
+  --bg-sunken: #202631;
+  --ink: #f4f7fb;
+  --ink-deep: #ffffff;
+  --text-1: #edf1f7;
+  --text-2: #b5bfcc;
+  --text-3: #8793a3;
+  --text-4: #5f6b7a;
+  --line: #2a303a;
+  --line-soft: #222833;
+  --accent: #6aa0ff;
+  --accent-deep: #8bb6ff;
+  --accent-tint: rgba(106,160,255,0.16);
+  --success: #31c26b;
+  --glow-a: rgba(64,128,255,0.22);
+  --shine-glint: rgba(255,255,255,0.98);
+  --primary-bg: #edf1f7;
+  --primary-text: #0f1217;
+  --primary-hover-bg: var(--accent-deep);
+  --primary-hover-text: #07111f;
 }
 
 * { box-sizing: border-box; }
@@ -111,7 +142,7 @@ a:hover { color: var(--accent-deep); }
     90deg,
     var(--ink) 0%,
     var(--ink) 40%,
-    rgba(255,255,255,0.92) 50%,
+    var(--shine-glint) 50%,
     var(--ink) 60%,
     var(--ink) 100%
   );
@@ -141,7 +172,7 @@ a:hover { color: var(--accent-deep); }
 
 /* base_url 卡 */
 .endpoint {
-  background: #fff;
+  background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 6px 6px 6px 18px;
@@ -163,8 +194,8 @@ a:hover { color: var(--accent-deep); }
   user-select: all;
 }
 .endpoint__copy {
-  background: var(--ink);
-  color: #fff;
+  background: var(--primary-bg);
+  color: var(--primary-text);
   border: none;
   font-family: var(--font-sans);
   font-size: 12.5px;
@@ -175,7 +206,10 @@ a:hover { color: var(--accent-deep); }
   transition: background 150ms ease, transform 100ms ease;
   white-space: nowrap;
 }
-.endpoint__copy:hover { background: var(--ink-deep); }
+.endpoint__copy:hover {
+  background: var(--primary-hover-bg);
+  color: var(--primary-hover-text);
+}
 .endpoint__copy:active { transform: scale(0.97); }
 .endpoint__copy.is-copied { background: var(--success); }
 
@@ -194,8 +228,14 @@ a:hover { color: var(--accent-deep); }
   transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
   font-family: var(--font-sans);
 }
-.btn--primary { background: var(--ink); color: #fff; }
-.btn--primary:hover { background: var(--accent-deep); }
+.btn--primary {
+  background: var(--primary-bg);
+  color: var(--primary-text);
+}
+.btn--primary:hover {
+  background: var(--primary-hover-bg);
+  color: var(--primary-hover-text);
+}
 .btn--ghost {
   background: transparent;
   color: var(--text-1);
@@ -539,6 +579,43 @@ footer { border-top: 1px solid var(--line); background: var(--bg); padding: 28px
 
 <script>
 (function(){
+  var root = document.documentElement;
+  var themeMeta = document.querySelector('meta[name="theme-color"]');
+  var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  var hasParentTheme = false;
+
+  function setTheme(themeMode){
+    var normalized = themeMode === 'dark' ? 'dark' : 'light';
+    root.setAttribute('data-theme', normalized);
+    if (themeMeta) {
+      themeMeta.setAttribute('content', normalized === 'dark' ? '#0f1217' : '#ffffff');
+    }
+  }
+
+  function setLang(lang){
+    if (typeof lang !== 'string' || !lang.trim()) return;
+    root.setAttribute('lang', lang.trim());
+  }
+
+  setTheme(systemDark && systemDark.matches ? 'dark' : 'light');
+  if (systemDark && systemDark.addEventListener) {
+    systemDark.addEventListener('change', function(event){
+      if (hasParentTheme) return;
+      setTheme(event.matches ? 'dark' : 'light');
+    });
+  }
+
+  window.addEventListener('message', function(event){
+    if (!event || !event.data || typeof event.data !== 'object') return;
+    if (event.data.themeMode === 'dark' || event.data.themeMode === 'light') {
+      hasParentTheme = true;
+      setTheme(event.data.themeMode);
+    }
+    if (typeof event.data.lang === 'string') {
+      setLang(event.data.lang);
+    }
+  });
+
   var btn = document.getElementById('mla-copy');
   var src = document.getElementById('mla-baseurl');
   if (!btn || !src) return;
